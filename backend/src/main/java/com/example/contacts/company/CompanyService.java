@@ -29,8 +29,9 @@ public class CompanyService {
     }
 
     public CompanyResponse create(CompanyRequest request) {
-        if (companyRepository.existsByVatNumber(request.vatNumber())) {
-            throw vatConflict(request.vatNumber());
+        String vat = request.vatNumber().strip();
+        if (companyRepository.existsByVatNumber(vat)) {
+            throw vatConflict(vat);
         }
         Company company = new Company();
         apply(company, request);
@@ -39,15 +40,17 @@ public class CompanyService {
 
     public CompanyResponse update(Long id, CompanyRequest request) {
         Company company = getEntity(id);
-        if (companyRepository.existsByVatNumberAndIdNot(request.vatNumber(), id)) {
-            throw vatConflict(request.vatNumber());
+        String vat = request.vatNumber().strip();
+        if (companyRepository.existsByVatNumberAndIdNot(vat, id)) {
+            throw vatConflict(vat);
         }
         apply(company, request);
         return CompanyResponse.from(company);
     }
 
     @Transactional(readOnly = true)
-    public CompanyResponse findByVatNumber(String vatNumber) {
+    public CompanyResponse findByVatNumber(String rawVatNumber) {
+        String vatNumber = rawVatNumber.strip();
         return companyRepository.findByVatNumber(vatNumber)
                 .map(CompanyResponse::from)
                 .orElseThrow(() -> new NotFoundException(
@@ -74,6 +77,6 @@ public class CompanyService {
     private void apply(Company company, CompanyRequest request) {
         company.setName(request.name());
         company.setAddress(request.address());
-        company.setVatNumber(request.vatNumber());
+        company.setVatNumber(request.vatNumber().strip());
     }
 }

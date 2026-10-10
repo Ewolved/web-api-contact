@@ -4,7 +4,7 @@ API REST JSON (Spring Boot 3.5, Java 25, base H2 in-memory) de gestion de contac
 
 ## Prérequis
 
-- Docker Desktop (seul prérequis pour le mode principal).
+- Docker (Docker Desktop, ou Docker Engine + plugin compose) : seul prérequis pour le mode principal.
 - Sans Docker : JDK 25 et Node 22.
 
 ## Lancement avec Docker
@@ -21,13 +21,27 @@ docker compose down         # arrête et nettoie la stack
 | Swagger UI | http://localhost:8080/swagger-ui.html (aussi via le front : http://localhost:3000/swagger-ui.html) |
 | Console H2 | http://localhost:8080/h2-console (JDBC URL `jdbc:h2:mem:contacts`, user `sa`, mot de passe vide) |
 
+> **Attention** : la console H2 (user `sa`, mot de passe vide) est un outil de démonstration locale. Les ports sont publiés sur `127.0.0.1` uniquement ; elle n'est accessible que depuis la machine locale et ne doit jamais être exposée.
+
 Les données sont en mémoire : elles sont réinitialisées (jeu de démo) à chaque démarrage.
 
 ## Lancement sans Docker
 
+Le backend et le front se lancent dans deux terminaux séparés.
+
+Terminal 1 (API sur http://localhost:8080) :
+
 ```bash
-cd backend && ./mvnw spring-boot:run          # API sur http://localhost:8080
-cd frontend && npm install && npm run dev     # front sur http://localhost:5173
+cd backend
+./mvnw spring-boot:run        # macOS / Linux / Git Bash
+.mvnw.cmd spring-boot:run    # PowerShell
+```
+
+Terminal 2 (front sur http://localhost:5173) :
+
+```bash
+cd frontend
+npm install && npm run dev
 ```
 
 En développement, Vite redirige `/api` vers `localhost:8080`.
@@ -46,7 +60,7 @@ En développement, Vite redirige `/api` vers `localhost:8080`.
 | GET | `/api/companies/search?vatNumber=...` | Rechercher une entreprise par TVA (égalité exacte) | 200, 404 |
 | PUT | `/api/companies/{companyId}/contacts/{contactId}` | Ajouter un contact à une entreprise (idempotent) | 200, 404 |
 
-Les erreurs ont un format unique : `{ "status": 400, "message": "Validation failed", "errors": { "champ": "message" } }`.
+Les erreurs ont un format unique : `{ "status": 400, "message": "Données invalides", "errors": { "champ": "message" } }`.
 
 ## Règles métier
 

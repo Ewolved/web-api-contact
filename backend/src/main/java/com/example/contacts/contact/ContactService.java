@@ -53,6 +53,6 @@ public class ContactService {
         contact.setLastName(request.lastName());
         contact.setAddress(request.address());
         contact.setType(request.type());
-        contact.setVatNumber(request.vatNumber());
+        contact.setVatNumber(request.vatNumber() == null ? null : request.vatNumber().strip());
     }
 }
