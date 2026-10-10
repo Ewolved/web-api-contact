@@ -1,4 +1,4 @@
-package com.example.contacts.common;
+package com.example.contacts.contact.dto;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;

@@ -3,7 +3,6 @@ package com.example.contacts.contact;
 import com.example.contacts.common.NotFoundException;
 import com.example.contacts.contact.dto.ContactRequest;
 import com.example.contacts.contact.dto.ContactResponse;
-import java.util.ArrayList;
 import java.util.List;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -25,34 +24,27 @@ public class ContactService {
     }
 
     public ContactResponse create(ContactRequest request) {
-        Contact contact = new Contact();
-        apply(contact, request);
+        Contact contact = new Contact(request.firstName(), request.lastName(), request.address(),
+                request.type(), request.vatNumber());
         return ContactResponse.from(contactRepository.save(contact));
     }
 
     public ContactResponse update(Long id, ContactRequest request) {
         Contact contact = getEntity(id);
-        apply(contact, request);
+        contact.update(request.firstName(), request.lastName(), request.address(),
+                request.type(), request.vatNumber());
         return ContactResponse.from(contact);
     }
 
     public void delete(Long id) {
         Contact contact = getEntity(id);
-        new ArrayList<>(contact.getCompanies()).forEach(company -> company.getContacts().remove(contact));
-        contactRepository.deleteById(id);
+        contact.leaveAllCompanies();
+        contactRepository.delete(contact);
     }
 
-    @Transactional(readOnly = true)
+    /** Loads a managed contact for use within the caller's transaction. */
     public Contact getEntity(Long id) {
         return contactRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Contact " + id + " introuvable"));
-    }
-
-    private void apply(Contact contact, ContactRequest request) {
-        contact.setFirstName(request.firstName());
-        contact.setLastName(request.lastName());
-        contact.setAddress(request.address());
-        contact.setType(request.type());
-        contact.setVatNumber(request.vatNumber() == null ? null : request.vatNumber().strip());
     }
 }

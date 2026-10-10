@@ -4,7 +4,6 @@ import com.example.contacts.common.ConflictException;
 import com.example.contacts.common.NotFoundException;
 import com.example.contacts.company.dto.CompanyRequest;
 import com.example.contacts.company.dto.CompanyResponse;
-import com.example.contacts.contact.Contact;
 import com.example.contacts.contact.ContactService;
 import java.util.List;
 import org.springframework.data.domain.Sort;
@@ -29,22 +28,19 @@ public class CompanyService {
     }
 
     public CompanyResponse create(CompanyRequest request) {
-        String vat = request.vatNumber().strip();
-        if (companyRepository.existsByVatNumber(vat)) {
-            throw vatConflict(vat);
+        if (companyRepository.existsByVatNumber(request.vatNumber())) {
+            throw vatConflict(request.vatNumber());
         }
-        Company company = new Company();
-        apply(company, request);
+        Company company = new Company(request.name(), request.address(), request.vatNumber());
         return CompanyResponse.from(companyRepository.save(company));
     }
 
     public CompanyResponse update(Long id, CompanyRequest request) {
         Company company = getEntity(id);
-        String vat = request.vatNumber().strip();
-        if (companyRepository.existsByVatNumberAndIdNot(vat, id)) {
-            throw vatConflict(vat);
+        if (companyRepository.existsByVatNumberAndIdNot(request.vatNumber(), id)) {
+            throw vatConflict(request.vatNumber());
         }
-        apply(company, request);
+        company.update(request.name(), request.address(), request.vatNumber());
         return CompanyResponse.from(company);
     }
 
@@ -59,9 +55,7 @@ public class CompanyService {
 
     public CompanyResponse addContact(Long companyId, Long contactId) {
         Company company = getEntity(companyId);
-        Contact contact = contactService.getEntity(contactId);
-        contact.getCompanies().add(company);
-        company.getContacts().add(contact);
+        contactService.getEntity(contactId).joinCompany(company);
         return CompanyResponse.from(company);
     }
 
@@ -72,11 +66,5 @@ public class CompanyService {
 
     private ConflictException vatConflict(String vat) {
         return new ConflictException("Le numéro de TVA " + vat + " est déjà utilisé");
-    }
-
-    private void apply(Company company, CompanyRequest request) {
-        company.setName(request.name());
-        company.setAddress(request.address());
-        company.setVatNumber(request.vatNumber().strip());
     }
 }

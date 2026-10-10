@@ -12,7 +12,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -38,24 +41,58 @@ public class Contact {
 
     private String vatNumber;
 
+    /** Owning side of the contact/company association. */
     @ManyToMany
     @JoinTable(name = "contact_company",
             joinColumns = @JoinColumn(name = "contact_id"),
             inverseJoinColumns = @JoinColumn(name = "company_id"))
     private Set<Company> companies = new HashSet<>();
 
+    protected Contact() {
+        // required by JPA
+    }
+
+    public Contact(String firstName, String lastName, String address, ContactType type, String vatNumber) {
+        assign(firstName, lastName, address, type, vatNumber);
+    }
+
+    public void update(String firstName, String lastName, String address, ContactType type, String vatNumber) {
+        assign(firstName, lastName, address, type, vatNumber);
+    }
+
+    /** Links this contact to the company on both sides of the association; does nothing if already linked. */
+    public void joinCompany(Company company) {
+        Objects.requireNonNull(company, "company");
+        if (companies.add(company)) {
+            company.linkContact(this);
+        }
+    }
+
+    /** Unlinks this contact from all its companies, typically before deleting it. */
+    public void leaveAllCompanies() {
+        for (Company company : List.copyOf(companies)) {
+            companies.remove(company);
+            company.unlinkContact(this);
+        }
+    }
+
+    private void assign(String firstName, String lastName, String address, ContactType type, String vatNumber) {
+        Objects.requireNonNull(type, "type");
+        if (type.requiresVatNumber() && (vatNumber == null || vatNumber.isBlank())) {
+            throw new IllegalArgumentException("A " + type + " contact requires a VAT number");
+        }
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.address = address;
+        this.type = type;
+        this.vatNumber = vatNumber;
+    }
+
     public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
     public String getFirstName() { return firstName; }
-    public void setFirstName(String firstName) { this.firstName = firstName; }
     public String getLastName() { return lastName; }
-    public void setLastName(String lastName) { this.lastName = lastName; }
     public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
     public ContactType getType() { return type; }
-    public void setType(ContactType type) { this.type = type; }
     public String getVatNumber() { return vatNumber; }
-    public void setVatNumber(String vatNumber) { this.vatNumber = vatNumber; }
-    public Set<Company> getCompanies() { return companies; }
-    public void setCompanies(Set<Company> companies) { this.companies = companies; }
+    public Set<Company> getCompanies() { return Collections.unmodifiableSet(companies); }
 }

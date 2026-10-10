@@ -1,7 +1,5 @@
 package com.example.contacts.contact.dto;
 
-import com.example.contacts.common.FreelanceRequiresVat;
-import com.example.contacts.common.VatHolder;
 import com.example.contacts.contact.ContactType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -13,5 +11,9 @@ public record ContactRequest(
         @NotBlank @Size(max = 255) String lastName,
         @NotBlank @Size(max = 255) String address,
         @NotNull ContactType type,
-        @Size(max = 255) String vatNumber) implements VatHolder {
+        @Size(max = 255) String vatNumber) {
+
+    public ContactRequest {
+        vatNumber = vatNumber == null ? null : vatNumber.strip();
+    }
 }

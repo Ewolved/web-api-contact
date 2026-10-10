@@ -1,5 +1,6 @@
 package com.example.contacts.contact.dto;
 
+import com.example.contacts.company.Company;
 import com.example.contacts.contact.Contact;
 import com.example.contacts.contact.ContactType;
 import java.util.Comparator;
@@ -19,7 +20,7 @@ public record ContactResponse(
 
     public static ContactResponse from(Contact c) {
         List<CompanySummary> companies = c.getCompanies().stream()
-                .sorted(Comparator.comparing(co -> co.getId()))
+                .sorted(Comparator.comparing(Company::getId))
                 .map(co -> new CompanySummary(co.getId(), co.getName(), co.getVatNumber()))
                 .toList();
         return new ContactResponse(c.getId(), c.getFirstName(), c.getLastName(), c.getAddress(),

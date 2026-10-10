@@ -7,4 +7,8 @@ public record CompanyRequest(
         @Size(max = 255) String name,
         @NotBlank @Size(max = 255) String address,
         @NotBlank @Size(max = 255) String vatNumber) {
+
+    public CompanyRequest {
+        vatNumber = vatNumber == null ? null : vatNumber.strip();
+    }
 }
