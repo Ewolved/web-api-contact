@@ -4,12 +4,14 @@ import ContactsPage from './pages/contacts/ContactsPage'
 import CompaniesPage from './pages/companies/CompaniesPage'
 import VatSearchPage from './pages/vat-search/VatSearchPage'
 
+const renderNothing = () => null
 const redirectToContacts = () => redirect('/contacts')
 
 export const routes: RouteObject[] = [
   {
     path: '/',
     Component: AppLayout,
+    HydrateFallback: renderNothing,
     children: [
       { index: true, loader: redirectToContacts },
       { path: 'contacts', Component: ContactsPage },

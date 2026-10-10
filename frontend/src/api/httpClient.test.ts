@@ -48,6 +48,32 @@ describe('httpClient', () => {
     })
   })
 
+  it('ignores a malformed message and errors in a 400 body', async () => {
+    stubFetch(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ message: 42, errors: ['x'] }), { status: 400 }),
+      ),
+    )
+    await expect(request('/api/x')).rejects.toMatchObject({
+      message: 'Erreur 400',
+      status: 400,
+      fieldErrors: {},
+    })
+  })
+
+  it('keeps the message when errors is null', async () => {
+    stubFetch(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ message: 'Validation', errors: null }), { status: 400 }),
+      ),
+    )
+    await expect(request('/api/x')).rejects.toMatchObject({
+      message: 'Validation',
+      status: 400,
+      fieldErrors: {},
+    })
+  })
+
   it('falls back to "Erreur <status>" for a non-JSON error body', async () => {
     stubFetch(() => Promise.resolve(new Response('<html>', { status: 502 })))
     await expect(request('/api/x')).rejects.toMatchObject({

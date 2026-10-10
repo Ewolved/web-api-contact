@@ -1,8 +1,3 @@
-interface ApiErrorBody {
-  message?: string
-  errors?: Record<string, string>
-}
-
 export class ApiRequestError extends Error {
   readonly status: number
   readonly fieldErrors: Record<string, string>
@@ -19,8 +14,18 @@ export function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : 'Erreur inattendue'
 }
 
-function isApiErrorBody(body: unknown): body is ApiErrorBody {
-  return typeof body === 'object' && body !== null
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function readFieldErrors(value: unknown): Record<string, string> {
+  if (!isRecord(value)) return {}
+  const fieldErrors: Record<string, string> = {}
+  for (const [field, message] of Object.entries(value)) {
+    if (typeof message !== 'string') return {}
+    fieldErrors[field] = message
+  }
+  return fieldErrors
 }
 
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -39,11 +44,11 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
-    const errorBody = isApiErrorBody(body) ? body : {}
+    const errorBody = isRecord(body) ? body : {}
     throw new ApiRequestError(
-      errorBody.message ?? `Erreur ${response.status}`,
+      typeof errorBody.message === 'string' ? errorBody.message : `Erreur ${response.status}`,
       response.status,
-      errorBody.errors ?? {},
+      readFieldErrors(errorBody.errors),
     )
   }
   // Frontière réseau : le corps JSON est supposé conforme au contrat du backend.

@@ -244,12 +244,12 @@ export default function ContactsPage() {
                     <td data-label="Adresse">{c.address}</td>
                     <td data-label="Type">
                       <span className={`badge badge--${c.type === 'FREELANCE' ? 'freelance' : 'employee'}`}>
-                        {TYPE_LABELS[c.type] ?? c.type}
+                        {TYPE_LABELS[c.type]}
                       </span>
                     </td>
                     <td data-label="TVA">{c.vatNumber || '—'}</td>
                     <td data-label="Entreprises">
-                      {(c.companies ?? []).map((co) => (
+                      {c.companies.map((co) => (
                         <span className="chip" key={co.id}>
                           {co.name || co.vatNumber}
                         </span>
