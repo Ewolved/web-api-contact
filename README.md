@@ -34,7 +34,7 @@ Terminal 1 (API sur http://localhost:8080) :
 ```bash
 cd backend
 ./mvnw spring-boot:run        # macOS / Linux / Git Bash
-.mvnw.cmd spring-boot:run    # PowerShell
+.\mvnw.cmd spring-boot:run    # PowerShell
 ```
 
 Terminal 2 (front sur http://localhost:5173) :
