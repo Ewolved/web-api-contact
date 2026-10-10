@@ -1,29 +1,38 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { createContact, deleteContact, getContacts, updateContact } from '../api.js'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { ApiRequestError, contactsApi, errorMessage } from '../../api/api'
+import type { Contact, ContactRequest, ContactType } from '../../types/contact'
 
-const EMPTY_FORM = { firstName: '', lastName: '', address: '', type: 'EMPLOYEE', vatNumber: '' }
+type ContactForm = {
+  firstName: string
+  lastName: string
+  address: string
+  type: ContactType
+  vatNumber: string
+}
 
-const TYPE_LABELS = { EMPLOYEE: 'Employé', FREELANCE: 'Freelance' }
+const EMPTY_FORM: ContactForm = { firstName: '', lastName: '', address: '', type: 'EMPLOYEE', vatNumber: '' }
 
-export default function ContactsView() {
-  const [contacts, setContacts] = useState([])
+const TYPE_LABELS: Record<ContactType, string> = { EMPLOYEE: 'Employé', FREELANCE: 'Freelance' }
+
+export default function ContactsPage() {
+  const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
-  const [editingId, setEditingId] = useState(null)
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [fieldErrors, setFieldErrors] = useState({})
-  const [formError, setFormError] = useState(null)
-  const [success, setSuccess] = useState(null)
-  const [deletingId, setDeletingId] = useState(null)
-  const timerRef = useRef(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [formError, setFormError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout>>()
 
   const load = useCallback(async () => {
     try {
-      setContacts(await getContacts())
+      setContacts(await contactsApi.list())
       setLoadError(null)
     } catch (e) {
-      setLoadError(e.message)
+      setLoadError(errorMessage(e))
     } finally {
       setLoading(false)
     }
@@ -34,7 +43,7 @@ export default function ContactsView() {
     return () => clearTimeout(timerRef.current)
   }, [load])
 
-  const showSuccess = (message) => {
+  const showSuccess = (message: string) => {
     setSuccess(message)
     clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => setSuccess(null), 3000)
@@ -47,7 +56,7 @@ export default function ContactsView() {
     setFormError(null)
   }
 
-  const startEdit = (contact) => {
+  const startEdit = (contact: Contact) => {
     setForm({
       firstName: contact.firstName,
       lastName: contact.lastName,
@@ -61,9 +70,12 @@ export default function ContactsView() {
     setSuccess(null)
   }
 
-  const update = (name) => (e) => {
+  const update = (name: keyof ContactForm) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const value = e.target.value
-    setForm((f) => ({ ...f, [name]: value }))
+    setForm((f) => ({
+      ...f,
+      [name]: name === 'type' ? (value === 'FREELANCE' ? 'FREELANCE' : 'EMPLOYEE') : value,
+    }))
     setFieldErrors((errs) => {
       if (!errs[name]) return errs
       const { [name]: _removed, ...rest } = errs
@@ -71,13 +83,13 @@ export default function ContactsView() {
     })
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setSubmitting(true)
     setFieldErrors({})
     setFormError(null)
     setSuccess(null)
-    const payload = {
+    const payload: ContactRequest = {
       firstName: form.firstName,
       lastName: form.lastName,
       address: form.address,
@@ -86,43 +98,43 @@ export default function ContactsView() {
     }
     try {
       if (editingId === null) {
-        await createContact(payload)
+        await contactsApi.create(payload)
         showSuccess('Contact créé')
       } else {
-        await updateContact(editingId, payload)
+        await contactsApi.update(editingId, payload)
         showSuccess('Contact modifié')
       }
       resetForm()
       await load()
     } catch (err) {
-      const errors = err.fieldErrors ?? {}
+      const errors = err instanceof ApiRequestError ? err.fieldErrors : {}
       setFieldErrors(errors)
       const rendered = ['firstName', 'lastName', 'address', 'type']
       if (form.type === 'FREELANCE') rendered.push('vatNumber')
       const hidden = Object.keys(errors).filter((k) => !rendered.includes(k))
       if (hidden.length > 0) setFormError(hidden.map((k) => errors[k]).join(' ; '))
-      else if (Object.keys(errors).length === 0) setFormError(err.message)
+      else if (Object.keys(errors).length === 0) setFormError(errorMessage(err))
     } finally {
       setSubmitting(false)
     }
   }
 
-  const handleDelete = async (contact) => {
+  const handleDelete = async (contact: Contact) => {
     if (!window.confirm(`Supprimer le contact ${contact.firstName} ${contact.lastName} ?`)) return
     setDeletingId(contact.id)
     try {
-      await deleteContact(contact.id)
+      await contactsApi.remove(contact.id)
       if (editingId === contact.id) resetForm()
       showSuccess('Contact supprimé')
       await load()
     } catch (err) {
-      setLoadError(err.message)
+      setLoadError(errorMessage(err))
     } finally {
       setDeletingId(null)
     }
   }
 
-  const field = (name, label, required) => (
+  const field = (name: keyof ContactForm, label: string, required: boolean) => (
     <div className="field">
       <label htmlFor={`contact-${name}`}>{label}</label>
       <input
@@ -232,12 +244,12 @@ export default function ContactsView() {
                     <td data-label="Adresse">{c.address}</td>
                     <td data-label="Type">
                       <span className={`badge badge--${c.type === 'FREELANCE' ? 'freelance' : 'employee'}`}>
-                        {TYPE_LABELS[c.type] ?? c.type}
+                        {TYPE_LABELS[c.type]}
                       </span>
                     </td>
                     <td data-label="TVA">{c.vatNumber || '—'}</td>
                     <td data-label="Entreprises">
-                      {(c.companies ?? []).map((co) => (
+                      {c.companies.map((co) => (
                         <span className="chip" key={co.id}>
                           {co.name || co.vatNumber}
                         </span>
