@@ -1,22 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import {
-  addContactToCompany,
-  ApiRequestError,
-  createCompany,
-  errorMessage,
-  getCompanies,
-  getContacts,
-  updateCompany,
-} from '../api'
-import type { Company, CompanyRequest } from '../types/company'
-import type { Contact } from '../types/contact'
-import ContactChips from './ContactChips'
+import LinkContactForm from './LinkContactForm'
+import { ApiRequestError, companiesApi, errorMessage } from '../../api/api'
+import type { Company, CompanyRequest } from '../../types/company'
+import ContactChips from '../../components/ContactChips'
 
 type CompanyForm = { name: string; address: string; vatNumber: string }
 
 const EMPTY_FORM: CompanyForm = { name: '', address: '', vatNumber: '' }
 
-export default function CompaniesView() {
+export default function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -30,7 +22,7 @@ export default function CompaniesView() {
 
   const load = useCallback(async () => {
     try {
-      setCompanies(await getCompanies())
+      setCompanies(await companiesApi.list())
       setLoadError(null)
     } catch (e) {
       setLoadError(errorMessage(e))
@@ -83,10 +75,10 @@ export default function CompaniesView() {
     }
     try {
       if (editingId === null) {
-        await createCompany(payload)
+        await companiesApi.create(payload)
         setSuccess('Entreprise créée')
       } else {
-        await updateCompany(editingId, payload)
+        await companiesApi.update(editingId, payload)
         setSuccess('Entreprise modifiée')
       }
       timerRef.current = setTimeout(() => setSuccess(null), 3000)
@@ -213,96 +205,5 @@ export default function CompaniesView() {
         )}
       </section>
     </div>
-  )
-}
-
-function LinkContactForm({
-  companies,
-  onLinked,
-}: {
-  companies: Company[]
-  onLinked: () => Promise<void>
-}) {
-  const [contacts, setContacts] = useState<Contact[]>([])
-  const [companyId, setCompanyId] = useState('')
-  const [contactId, setContactId] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-
-  useEffect(() => {
-    getContacts()
-      .then(setContacts)
-      .catch((e: unknown) => setError(errorMessage(e)))
-  }, [])
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setError(null)
-    setSuccess(null)
-    if (companyId === '' || contactId === '') {
-      setError('Choisissez une entreprise et un contact')
-      return
-    }
-    setSubmitting(true)
-    try {
-      const company = await addContactToCompany(Number(companyId), Number(contactId))
-      const contact = contacts.find((c) => String(c.id) === contactId)
-      const target = company.name || company.vatNumber
-      setSuccess(
-        contact === undefined
-          ? `Contact rattaché à ${target}`
-          : `${contact.firstName} ${contact.lastName} rattaché(e) à ${target}`,
-      )
-      setContactId('')
-      await onLinked()
-    } catch (err) {
-      setError(errorMessage(err))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <section className="card">
-      <h2>Rattacher un contact</h2>
-      <form className="form" onSubmit={handleSubmit} noValidate>
-        {error && (
-          <div className="alert alert--error" role="alert">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="alert alert--success" role="status">
-            {success}
-          </div>
-        )}
-        <div className="field">
-          <label htmlFor="link-company">Entreprise</label>
-          <select id="link-company" value={companyId} onChange={(e) => setCompanyId(e.target.value)}>
-            <option value="">— Choisir —</option>
-            {companies.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name ? `${c.name} (${c.vatNumber})` : c.vatNumber}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="field">
-          <label htmlFor="link-contact">Contact</label>
-          <select id="link-contact" value={contactId} onChange={(e) => setContactId(e.target.value)}>
-            <option value="">— Choisir —</option>
-            {contacts.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.lastName} {c.firstName}
-              </option>
-            ))}
-          </select>
-        </div>
-        <button className="btn" type="submit" disabled={submitting}>
-          {submitting ? 'Rattachement…' : 'Rattacher'}
-        </button>
-      </form>
-    </section>
   )
 }

@@ -1,6 +1,3 @@
-import type { Company, CompanyRequest } from './types/company'
-import type { Contact, ContactRequest } from './types/contact'
-
 interface ApiErrorBody {
   message?: string
   errors?: Record<string, string>
@@ -26,7 +23,7 @@ function isApiErrorBody(body: unknown): body is ApiErrorBody {
   return typeof body === 'object' && body !== null
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response
   try {
     response = await fetch(path, init)
@@ -53,29 +50,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T
 }
 
-function send<T>(method: string, path: string, payload?: unknown): Promise<T> {
+export function send<T>(method: 'POST' | 'PUT', path: string, payload?: unknown): Promise<T> {
   return request<T>(path, {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: payload === undefined ? undefined : JSON.stringify(payload),
   })
 }
-
-export const getContacts = () => request<Contact[]>('/api/contacts')
-export const createContact = (payload: ContactRequest) =>
-  send<Contact>('POST', '/api/contacts', payload)
-export const updateContact = (id: number, payload: ContactRequest) =>
-  send<Contact>('PUT', `/api/contacts/${id}`, payload)
-export const deleteContact = async (id: number): Promise<void> => {
-  await request<unknown>(`/api/contacts/${id}`, { method: 'DELETE' })
-}
-
-export const getCompanies = () => request<Company[]>('/api/companies')
-export const createCompany = (payload: CompanyRequest) =>
-  send<Company>('POST', '/api/companies', payload)
-export const updateCompany = (id: number, payload: CompanyRequest) =>
-  send<Company>('PUT', `/api/companies/${id}`, payload)
-export const searchCompanyByVat = (vatNumber: string) =>
-  request<Company>(`/api/companies/search?vatNumber=${encodeURIComponent(vatNumber)}`)
-export const addContactToCompany = (companyId: number, contactId: number) =>
-  send<Company>('PUT', `/api/companies/${companyId}/contacts/${contactId}`)

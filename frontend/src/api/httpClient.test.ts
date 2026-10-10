@@ -1,13 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-  ApiRequestError,
-  createContact,
-  deleteContact,
-  errorMessage,
-  getContacts,
-  searchCompanyByVat,
-} from './api'
-import type { ContactRequest } from './types/contact'
+import { ApiRequestError, errorMessage, request, send } from './httpClient'
 
 function stubFetch(impl: () => Promise<Response>) {
   const fetchMock = vi.fn(impl)
@@ -19,19 +11,18 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('api client', () => {
-  it('getContacts resolves the parsed array', async () => {
-    const contacts = [{ id: 1, firstName: 'A', lastName: 'B' }]
+describe('httpClient', () => {
+  it('request resolves the parsed body', async () => {
     const fetchMock = stubFetch(() =>
-      Promise.resolve(new Response(JSON.stringify(contacts), { status: 200 })),
+      Promise.resolve(new Response(JSON.stringify([{ id: 1 }]), { status: 200 })),
     )
-    await expect(getContacts()).resolves.toEqual(contacts)
-    expect(fetchMock).toHaveBeenCalledWith('/api/contacts', undefined)
+    await expect(request('/api/x')).resolves.toEqual([{ id: 1 }])
+    expect(fetchMock).toHaveBeenCalledWith('/api/x', undefined)
   })
 
   it('maps a network failure to ApiRequestError "API injoignable"', async () => {
     stubFetch(() => Promise.reject(new TypeError('failed')))
-    await expect(getContacts()).rejects.toMatchObject({
+    await expect(request('/api/x')).rejects.toMatchObject({
       name: 'ApiRequestError',
       message: 'API injoignable',
       status: 0,
@@ -48,7 +39,7 @@ describe('api client', () => {
         ),
       ),
     )
-    const error = await getContacts().catch((e: unknown) => e)
+    const error = await request('/api/x').catch((e: unknown) => e)
     expect(error).toBeInstanceOf(ApiRequestError)
     expect(error).toMatchObject({
       status: 400,
@@ -59,39 +50,25 @@ describe('api client', () => {
 
   it('falls back to "Erreur <status>" for a non-JSON error body', async () => {
     stubFetch(() => Promise.resolve(new Response('<html>', { status: 502 })))
-    await expect(getContacts()).rejects.toMatchObject({
+    await expect(request('/api/x')).rejects.toMatchObject({
       message: 'Erreur 502',
       status: 502,
       fieldErrors: {},
     })
   })
 
-  it('deleteContact resolves on an empty 204 and uses a plain DELETE request', async () => {
-    const fetchMock = stubFetch(() => Promise.resolve(new Response(null, { status: 204 })))
-    await expect(deleteContact(3)).resolves.toBeUndefined()
-    expect(fetchMock).toHaveBeenCalledWith('/api/contacts/3', { method: 'DELETE' })
+  it('resolves on an empty 204', async () => {
+    stubFetch(() => Promise.resolve(new Response(null, { status: 204 })))
+    await expect(request('/api/x', { method: 'DELETE' })).resolves.toBeNull()
   })
 
-  it('searchCompanyByVat encodes the VAT number', async () => {
+  it('send issues a JSON request with the given method', async () => {
     const fetchMock = stubFetch(() => Promise.resolve(new Response('{}', { status: 200 })))
-    await searchCompanyByVat('BE 01/2')
-    expect(fetchMock).toHaveBeenCalledWith('/api/companies/search?vatNumber=BE%2001%2F2', undefined)
-  })
-
-  it('createContact sends a JSON POST', async () => {
-    const payload: ContactRequest = {
-      firstName: 'A',
-      lastName: 'B',
-      address: 'C',
-      type: 'EMPLOYEE',
-      vatNumber: null,
-    }
-    const fetchMock = stubFetch(() => Promise.resolve(new Response('{}', { status: 201 })))
-    await createContact(payload)
-    expect(fetchMock).toHaveBeenCalledWith('/api/contacts', {
-      method: 'POST',
+    await send('PUT', '/api/x', { a: 1 })
+    expect(fetchMock).toHaveBeenCalledWith('/api/x', {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ a: 1 }),
     })
   })
 })

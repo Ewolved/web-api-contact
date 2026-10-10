@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import {
-  ApiRequestError,
-  createContact,
-  deleteContact,
-  errorMessage,
-  getContacts,
-  updateContact,
-} from '../api'
-import type { Contact, ContactRequest, ContactType } from '../types/contact'
+import { ApiRequestError, contactsApi, errorMessage } from '../../api/api'
+import type { Contact, ContactRequest, ContactType } from '../../types/contact'
 
 type ContactForm = {
   firstName: string
@@ -21,7 +14,7 @@ const EMPTY_FORM: ContactForm = { firstName: '', lastName: '', address: '', type
 
 const TYPE_LABELS: Record<ContactType, string> = { EMPLOYEE: 'Employé', FREELANCE: 'Freelance' }
 
-export default function ContactsView() {
+export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -36,7 +29,7 @@ export default function ContactsView() {
 
   const load = useCallback(async () => {
     try {
-      setContacts(await getContacts())
+      setContacts(await contactsApi.list())
       setLoadError(null)
     } catch (e) {
       setLoadError(errorMessage(e))
@@ -105,10 +98,10 @@ export default function ContactsView() {
     }
     try {
       if (editingId === null) {
-        await createContact(payload)
+        await contactsApi.create(payload)
         showSuccess('Contact créé')
       } else {
-        await updateContact(editingId, payload)
+        await contactsApi.update(editingId, payload)
         showSuccess('Contact modifié')
       }
       resetForm()
@@ -130,7 +123,7 @@ export default function ContactsView() {
     if (!window.confirm(`Supprimer le contact ${contact.firstName} ${contact.lastName} ?`)) return
     setDeletingId(contact.id)
     try {
-      await deleteContact(contact.id)
+      await contactsApi.remove(contact.id)
       if (editingId === contact.id) resetForm()
       showSuccess('Contact supprimé')
       await load()

@@ -1,14 +1,14 @@
 import { useState, type ComponentType } from 'react'
-import ContactsView from './components/ContactsView'
-import CompaniesView from './components/CompaniesView'
-import VatSearchView from './components/VatSearchView'
+import ContactsPage from './pages/contacts/ContactsPage'
+import CompaniesPage from './pages/companies/CompaniesPage'
+import VatSearchPage from './pages/vat-search/VatSearchPage'
 
 type TabId = 'contacts' | 'companies' | 'vat-search'
 
 const TABS: { id: TabId; label: string; View: ComponentType }[] = [
-  { id: 'contacts', label: 'Contacts', View: ContactsView },
-  { id: 'companies', label: 'Entreprises', View: CompaniesView },
-  { id: 'vat-search', label: 'Recherche TVA', View: VatSearchView },
+  { id: 'contacts', label: 'Contacts', View: ContactsPage },
+  { id: 'companies', label: 'Entreprises', View: CompaniesPage },
+  { id: 'vat-search', label: 'Recherche TVA', View: VatSearchPage },
 ]
 
 export default function App() {
