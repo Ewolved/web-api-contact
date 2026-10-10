@@ -3,7 +3,7 @@ import { companiesApi, contactsApi } from './api'
 import type { CompanyRequest } from '../types/company'
 import type { ContactRequest } from '../types/contact'
 
-function stubFetch(status = 200, body = '{}') {
+function stubFetch(status = 200, body: string | null = '{}') {
   const fetchMock = vi.fn(() => Promise.resolve(new Response(body, { status })))
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
@@ -51,7 +51,7 @@ describe('contactsApi', () => {
   })
 
   it('remove resolves on an empty 204 with a plain DELETE', async () => {
-    const fetchMock = stubFetch(204, '')
+    const fetchMock = stubFetch(204, null)
     await expect(contactsApi.remove(3)).resolves.toBeUndefined()
     expect(fetchMock).toHaveBeenCalledWith('/api/contacts/3', { method: 'DELETE' })
   })
