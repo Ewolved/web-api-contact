@@ -76,7 +76,8 @@ Les erreurs ont un format unique : `{ "status": 400, "message": "Données invali
 - Le numéro de TVA est une chaîne non vide, sans validation de format par pays.
 - `Company.name` est ajouté (optionnel) pour la lisibilité.
 - Un `vatNumber` fourni pour un `EMPLOYEE` est accepté et conservé tel quel.
-- Le front v1 liste et crée contacts et entreprises ; le reste (modification, suppression, recherche TVA, rattachement) est disponible via Swagger.
+- Le front couvre toutes les fonctionnalités : création, modification et suppression de contacts ; création et modification d'entreprises ; recherche d'une entreprise par TVA ; rattachement d'un contact à une entreprise.
+- Dans le formulaire, le numéro de TVA n'est saisi que pour un freelance ; enregistrer un employé depuis le front efface donc un éventuel numéro de TVA posé via l'API.
 
 ## Structure
 
