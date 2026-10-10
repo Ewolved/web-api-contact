@@ -5,7 +5,7 @@ import {
   getCompanies,
   getContacts,
   updateCompany,
-} from '../api.js'
+} from '../api'
 import ContactChips from './ContactChips.jsx'
 
 const EMPTY_FORM = { name: '', address: '', vatNumber: '' }

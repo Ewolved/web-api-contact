@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { searchCompanyByVat } from '../api.js'
+import { searchCompanyByVat } from '../api'
 import ContactChips from './ContactChips.jsx'
 
 export default function VatSearchView() {

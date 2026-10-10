@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { createContact, deleteContact, getContacts, updateContact } from '../api.js'
+import { createContact, deleteContact, getContacts, updateContact } from '../api'
 
 const EMPTY_FORM = { firstName: '', lastName: '', address: '', type: 'EMPLOYEE', vatNumber: '' }
 
