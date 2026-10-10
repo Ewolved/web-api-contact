@@ -1,5 +1,6 @@
 # --- Docs internes (non publiées) ---
 docs/superpowers/
+CLAUDE.md
 
 # --- Java / Maven (backend) ---
 target/
