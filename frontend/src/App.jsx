@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import ContactsView from './components/ContactsView.jsx'
 import CompaniesView from './components/CompaniesView.jsx'
+import VatSearchView from './components/VatSearchView.jsx'
 
 const TABS = [
-  { id: 'contacts', label: 'Contacts' },
-  { id: 'companies', label: 'Entreprises' },
+  { id: 'contacts', label: 'Contacts', View: ContactsView },
+  { id: 'companies', label: 'Entreprises', View: CompaniesView },
+  { id: 'vat-search', label: 'Recherche TVA', View: VatSearchView },
 ]
 
 export default function App() {
   const [tab, setTab] = useState('contacts')
+  const ActiveView = TABS.find((t) => t.id === tab).View
 
   return (
     <div className="app">
@@ -33,7 +36,7 @@ export default function App() {
         </div>
       </header>
       <main role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
-        {tab === 'contacts' ? <ContactsView /> : <CompaniesView />}
+        <ActiveView />
       </main>
     </div>
   )

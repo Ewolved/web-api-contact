@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { createContact, getContacts } from '../api.js'
+import { createContact, deleteContact, getContacts, updateContact } from '../api.js'
 
 const EMPTY_FORM = { firstName: '', lastName: '', address: '', type: 'EMPLOYEE', vatNumber: '' }
 
@@ -10,10 +10,12 @@ export default function ContactsView() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [editingId, setEditingId] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
   const [formError, setFormError] = useState(null)
-  const [success, setSuccess] = useState(false)
+  const [success, setSuccess] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
   const timerRef = useRef(null)
 
   const load = useCallback(async () => {
@@ -32,6 +34,33 @@ export default function ContactsView() {
     return () => clearTimeout(timerRef.current)
   }, [load])
 
+  const showSuccess = (message) => {
+    setSuccess(message)
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => setSuccess(null), 3000)
+  }
+
+  const resetForm = () => {
+    setForm(EMPTY_FORM)
+    setEditingId(null)
+    setFieldErrors({})
+    setFormError(null)
+  }
+
+  const startEdit = (contact) => {
+    setForm({
+      firstName: contact.firstName,
+      lastName: contact.lastName,
+      address: contact.address,
+      type: contact.type,
+      vatNumber: contact.vatNumber ?? '',
+    })
+    setEditingId(contact.id)
+    setFieldErrors({})
+    setFormError(null)
+    setSuccess(null)
+  }
+
   const update = (name) => (e) => {
     const value = e.target.value
     setForm((f) => ({ ...f, [name]: value }))
@@ -47,8 +76,7 @@ export default function ContactsView() {
     setSubmitting(true)
     setFieldErrors({})
     setFormError(null)
-    setSuccess(false)
-    clearTimeout(timerRef.current)
+    setSuccess(null)
     const payload = {
       firstName: form.firstName,
       lastName: form.lastName,
@@ -57,10 +85,14 @@ export default function ContactsView() {
       vatNumber: form.type === 'FREELANCE' ? form.vatNumber : null,
     }
     try {
-      await createContact(payload)
-      setForm(EMPTY_FORM)
-      setSuccess(true)
-      timerRef.current = setTimeout(() => setSuccess(false), 3000)
+      if (editingId === null) {
+        await createContact(payload)
+        showSuccess('Contact créé')
+      } else {
+        await updateContact(editingId, payload)
+        showSuccess('Contact modifié')
+      }
+      resetForm()
       await load()
     } catch (err) {
       const errors = err.fieldErrors ?? {}
@@ -72,6 +104,21 @@ export default function ContactsView() {
       else if (Object.keys(errors).length === 0) setFormError(err.message)
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleDelete = async (contact) => {
+    if (!window.confirm(`Supprimer le contact ${contact.firstName} ${contact.lastName} ?`)) return
+    setDeletingId(contact.id)
+    try {
+      await deleteContact(contact.id)
+      if (editingId === contact.id) resetForm()
+      showSuccess('Contact supprimé')
+      await load()
+    } catch (err) {
+      setLoadError(err.message)
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -96,11 +143,12 @@ export default function ContactsView() {
   )
 
   const isFreelance = form.type === 'FREELANCE'
+  const isEditing = editingId !== null
 
   return (
     <div className="layout">
       <section className="card">
-        <h2>Nouveau contact</h2>
+        <h2>{isEditing ? 'Modifier le contact' : 'Nouveau contact'}</h2>
         <form className="form" onSubmit={handleSubmit} noValidate>
           {formError && (
             <div className="alert alert--error" role="alert">
@@ -109,7 +157,7 @@ export default function ContactsView() {
           )}
           {success && (
             <div className="alert alert--success" role="status">
-              Contact créé
+              {success}
             </div>
           )}
           {field('firstName', 'Prénom', true)}
@@ -134,9 +182,16 @@ export default function ContactsView() {
             )}
           </div>
           {isFreelance && field('vatNumber', 'N° TVA', true)}
-          <button className="btn" type="submit" disabled={submitting}>
-            {submitting ? 'Enregistrement…' : 'Créer le contact'}
-          </button>
+          <div className="form-actions">
+            <button className="btn" type="submit" disabled={submitting}>
+              {submitting ? 'Enregistrement…' : isEditing ? 'Enregistrer' : 'Créer le contact'}
+            </button>
+            {isEditing && (
+              <button className="btn btn--secondary" type="button" onClick={resetForm} disabled={submitting}>
+                Annuler
+              </button>
+            )}
+          </div>
         </form>
       </section>
 
@@ -156,32 +211,56 @@ export default function ContactsView() {
             <table className="table">
               <thead>
                 <tr>
+                  <th scope="col">ID</th>
                   <th scope="col">Nom</th>
                   <th scope="col">Prénom</th>
                   <th scope="col">Adresse</th>
                   <th scope="col">Type</th>
                   <th scope="col">TVA</th>
                   <th scope="col">Entreprises</th>
+                  <th scope="col">
+                    <span className="visually-hidden">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {contacts.map((c) => (
-                  <tr key={c.id}>
-                    <td>{c.lastName}</td>
-                    <td>{c.firstName}</td>
-                    <td>{c.address}</td>
-                    <td>
+                  <tr key={c.id} className={c.id === editingId ? 'row--selected' : undefined}>
+                    <td data-label="ID" className="cell-id">{c.id}</td>
+                    <td data-label="Nom">{c.lastName}</td>
+                    <td data-label="Prénom">{c.firstName}</td>
+                    <td data-label="Adresse">{c.address}</td>
+                    <td data-label="Type">
                       <span className={`badge badge--${c.type === 'FREELANCE' ? 'freelance' : 'employee'}`}>
                         {TYPE_LABELS[c.type] ?? c.type}
                       </span>
                     </td>
-                    <td>{c.vatNumber || '—'}</td>
-                    <td>
+                    <td data-label="TVA">{c.vatNumber || '—'}</td>
+                    <td data-label="Entreprises">
                       {(c.companies ?? []).map((co) => (
                         <span className="chip" key={co.id}>
                           {co.name || co.vatNumber}
                         </span>
                       ))}
+                    </td>
+                    <td className="row-actions">
+                      <button
+                        type="button"
+                        className="btn btn--small btn--secondary"
+                        onClick={() => startEdit(c)}
+                        aria-label={`Modifier ${c.firstName} ${c.lastName}`}
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn--small btn--danger"
+                        onClick={() => handleDelete(c)}
+                        disabled={deletingId === c.id}
+                        aria-label={`Supprimer ${c.firstName} ${c.lastName}`}
+                      >
+                        Supprimer
+                      </button>
                     </td>
                   </tr>
                 ))}

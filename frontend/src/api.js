@@ -32,15 +32,23 @@ async function request(path, options) {
   return body
 }
 
-function post(path, payload) {
+function send(method, path, payload) {
   return request(path, {
-    method: 'POST',
+    method,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: payload === undefined ? undefined : JSON.stringify(payload),
   })
 }
 
 export const getContacts = () => request('/api/contacts')
-export const createContact = (payload) => post('/api/contacts', payload)
+export const createContact = (payload) => send('POST', '/api/contacts', payload)
+export const updateContact = (id, payload) => send('PUT', `/api/contacts/${id}`, payload)
+export const deleteContact = (id) => request(`/api/contacts/${id}`, { method: 'DELETE' })
+
 export const getCompanies = () => request('/api/companies')
-export const createCompany = (payload) => post('/api/companies', payload)
+export const createCompany = (payload) => send('POST', '/api/companies', payload)
+export const updateCompany = (id, payload) => send('PUT', `/api/companies/${id}`, payload)
+export const searchCompanyByVat = (vatNumber) =>
+  request(`/api/companies/search?vatNumber=${encodeURIComponent(vatNumber)}`)
+export const addContactToCompany = (companyId, contactId) =>
+  send('PUT', `/api/companies/${companyId}/contacts/${contactId}`)
