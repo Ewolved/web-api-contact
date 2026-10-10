@@ -30,7 +30,15 @@ export default function CompaniesView() {
     return () => clearTimeout(timerRef.current)
   }, [load])
 
-  const update = (name) => (e) => setForm((f) => ({ ...f, [name]: e.target.value }))
+  const update = (name) => (e) => {
+    const value = e.target.value
+    setForm((f) => ({ ...f, [name]: value }))
+    setFieldErrors((errs) => {
+      if (!errs[name]) return errs
+      const { [name]: _removed, ...rest } = errs
+      return rest
+    })
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -53,7 +61,10 @@ export default function CompaniesView() {
     } catch (err) {
       const errors = err.fieldErrors ?? {}
       setFieldErrors(errors)
-      if (Object.keys(errors).length === 0) setFormError(err.message)
+      const rendered = ['name', 'address', 'vatNumber']
+      const hidden = Object.keys(errors).filter((k) => !rendered.includes(k))
+      if (hidden.length > 0) setFormError(hidden.map((k) => errors[k]).join(' ; '))
+      else if (Object.keys(errors).length === 0) setFormError(err.message)
     } finally {
       setSubmitting(false)
     }
