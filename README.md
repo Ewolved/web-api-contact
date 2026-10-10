@@ -18,7 +18,7 @@ docker compose down         # arrête et nettoie la stack
 |---|---|
 | Front | http://localhost:3000 |
 | API | http://localhost:8080/api |
-| Swagger UI | http://localhost:8080/swagger-ui.html |
+| Swagger UI | http://localhost:8080/swagger-ui.html (aussi via le front : http://localhost:3000/swagger-ui.html) |
 | Console H2 | http://localhost:8080/h2-console (JDBC URL `jdbc:h2:mem:contacts`, user `sa`, mot de passe vide) |
 
 Les données sont en mémoire : elles sont réinitialisées (jeu de démo) à chaque démarrage.
