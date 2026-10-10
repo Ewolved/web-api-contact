@@ -1,17 +1,19 @@
-import { useState } from 'react'
-import ContactsView from './components/ContactsView.jsx'
-import CompaniesView from './components/CompaniesView.jsx'
-import VatSearchView from './components/VatSearchView.jsx'
+import { useState, type ComponentType } from 'react'
+import ContactsView from './components/ContactsView'
+import CompaniesView from './components/CompaniesView'
+import VatSearchView from './components/VatSearchView'
 
-const TABS = [
+type TabId = 'contacts' | 'companies' | 'vat-search'
+
+const TABS: { id: TabId; label: string; View: ComponentType }[] = [
   { id: 'contacts', label: 'Contacts', View: ContactsView },
   { id: 'companies', label: 'Entreprises', View: CompaniesView },
   { id: 'vat-search', label: 'Recherche TVA', View: VatSearchView },
 ]
 
 export default function App() {
-  const [tab, setTab] = useState('contacts')
-  const ActiveView = TABS.find((t) => t.id === tab).View
+  const [tab, setTab] = useState<TabId>('contacts')
+  const ActiveView = (TABS.find((t) => t.id === tab) ?? TABS[0]).View
 
   return (
     <div className="app">

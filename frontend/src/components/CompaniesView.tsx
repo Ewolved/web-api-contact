@@ -1,33 +1,39 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import {
   addContactToCompany,
+  ApiRequestError,
   createCompany,
+  errorMessage,
   getCompanies,
   getContacts,
   updateCompany,
 } from '../api'
-import ContactChips from './ContactChips.jsx'
+import type { Company, CompanyRequest } from '../types/company'
+import type { Contact } from '../types/contact'
+import ContactChips from './ContactChips'
 
-const EMPTY_FORM = { name: '', address: '', vatNumber: '' }
+type CompanyForm = { name: string; address: string; vatNumber: string }
+
+const EMPTY_FORM: CompanyForm = { name: '', address: '', vatNumber: '' }
 
 export default function CompaniesView() {
-  const [companies, setCompanies] = useState([])
+  const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
-  const [editingId, setEditingId] = useState(null)
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [fieldErrors, setFieldErrors] = useState({})
-  const [formError, setFormError] = useState(null)
-  const [success, setSuccess] = useState(null)
-  const timerRef = useRef(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [formError, setFormError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout>>()
 
   const load = useCallback(async () => {
     try {
       setCompanies(await getCompanies())
       setLoadError(null)
     } catch (e) {
-      setLoadError(e.message)
+      setLoadError(errorMessage(e))
     } finally {
       setLoading(false)
     }
@@ -45,7 +51,7 @@ export default function CompaniesView() {
     setFormError(null)
   }
 
-  const startEdit = (company) => {
+  const startEdit = (company: Company) => {
     setForm({ name: company.name ?? '', address: company.address, vatNumber: company.vatNumber })
     setEditingId(company.id)
     setFieldErrors({})
@@ -53,7 +59,7 @@ export default function CompaniesView() {
     setSuccess(null)
   }
 
-  const update = (name) => (e) => {
+  const update = (name: keyof CompanyForm) => (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setForm((f) => ({ ...f, [name]: value }))
     setFieldErrors((errs) => {
@@ -63,14 +69,14 @@ export default function CompaniesView() {
     })
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setSubmitting(true)
     setFieldErrors({})
     setFormError(null)
     setSuccess(null)
     clearTimeout(timerRef.current)
-    const payload = {
+    const payload: CompanyRequest = {
       name: form.name.trim() === '' ? null : form.name,
       address: form.address,
       vatNumber: form.vatNumber,
@@ -87,18 +93,18 @@ export default function CompaniesView() {
       resetForm()
       await load()
     } catch (err) {
-      const errors = err.fieldErrors ?? {}
+      const errors = err instanceof ApiRequestError ? err.fieldErrors : {}
       setFieldErrors(errors)
       const rendered = ['name', 'address', 'vatNumber']
       const hidden = Object.keys(errors).filter((k) => !rendered.includes(k))
       if (hidden.length > 0) setFormError(hidden.map((k) => errors[k]).join(' ; '))
-      else if (Object.keys(errors).length === 0) setFormError(err.message)
+      else if (Object.keys(errors).length === 0) setFormError(errorMessage(err))
     } finally {
       setSubmitting(false)
     }
   }
 
-  const field = (name, label, required) => (
+  const field = (name: keyof CompanyForm, label: string, required: boolean) => (
     <div className="field">
       <label htmlFor={`company-${name}`}>{label}</label>
       <input
@@ -210,21 +216,27 @@ export default function CompaniesView() {
   )
 }
 
-function LinkContactForm({ companies, onLinked }) {
-  const [contacts, setContacts] = useState([])
+function LinkContactForm({
+  companies,
+  onLinked,
+}: {
+  companies: Company[]
+  onLinked: () => Promise<void>
+}) {
+  const [contacts, setContacts] = useState<Contact[]>([])
   const [companyId, setCompanyId] = useState('')
   const [contactId, setContactId] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(null)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     getContacts()
       .then(setContacts)
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => setError(errorMessage(e)))
   }, [])
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError(null)
     setSuccess(null)
@@ -234,13 +246,18 @@ function LinkContactForm({ companies, onLinked }) {
     }
     setSubmitting(true)
     try {
-      const company = await addContactToCompany(companyId, contactId)
+      const company = await addContactToCompany(Number(companyId), Number(contactId))
       const contact = contacts.find((c) => String(c.id) === contactId)
-      setSuccess(`${contact.firstName} ${contact.lastName} rattaché(e) à ${company.name || company.vatNumber}`)
+      const target = company.name || company.vatNumber
+      setSuccess(
+        contact === undefined
+          ? `Contact rattaché à ${target}`
+          : `${contact.firstName} ${contact.lastName} rattaché(e) à ${target}`,
+      )
       setContactId('')
       await onLinked()
     } catch (err) {
-      setError(err.message)
+      setError(errorMessage(err))
     } finally {
       setSubmitting(false)
     }

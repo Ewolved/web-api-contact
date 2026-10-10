@@ -1,14 +1,15 @@
-import { useState } from 'react'
-import { searchCompanyByVat } from '../api'
-import ContactChips from './ContactChips.jsx'
+import { useState, type FormEvent } from 'react'
+import { errorMessage, searchCompanyByVat } from '../api'
+import ContactChips from './ContactChips'
+import type { Company } from '../types/company'
 
 export default function VatSearchView() {
   const [vatNumber, setVatNumber] = useState('')
   const [searching, setSearching] = useState(false)
-  const [result, setResult] = useState(null)
-  const [error, setError] = useState(null)
+  const [result, setResult] = useState<Company | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSearch = async (e) => {
+  const handleSearch = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setResult(null)
     setError(null)
@@ -20,7 +21,7 @@ export default function VatSearchView() {
     try {
       setResult(await searchCompanyByVat(vatNumber.trim()))
     } catch (err) {
-      setError(err.message)
+      setError(errorMessage(err))
     } finally {
       setSearching(false)
     }
