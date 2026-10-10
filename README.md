@@ -1,6 +1,6 @@
 # Gestion de contacts
 
-API REST JSON (Spring Boot 3.5, Java 25, base H2 in-memory) de gestion de contacts et d'entreprises, documentée par Swagger UI, avec un front React minimal (Vite) servi par nginx.
+API REST JSON (Spring Boot 3.5, Java 25, base H2 in-memory) de gestion de contacts et d'entreprises, documentée par Swagger UI, avec un front React + TypeScript (Vite) servi par nginx.
 
 ## Prérequis
 
@@ -46,6 +46,10 @@ npm install && npm run dev
 
 En développement, Vite redirige `/api` vers `localhost:8080`.
 
+Autres scripts du front (depuis `frontend/`) : `npm run typecheck` (TypeScript), `npm test` (Vitest), `npm run build` (typecheck + build de production).
+
+Routes du front : `/contacts`, `/companies`, `/vat-search` ; `/` et toute URL inconnue redirigent vers `/contacts`.
+
 ## Endpoints
 
 | Méthode | URL | Description | Codes |
@@ -83,6 +87,17 @@ Les erreurs ont un format unique : `{ "status": 400, "message": "Données invali
 
 ```
 backend/             Spring Boot (Maven wrapper), Dockerfile
-frontend/            Vite + React, Dockerfile, nginx.conf (reverse proxy)
+frontend/            Vite + React + TypeScript, Dockerfile, nginx.conf (reverse proxy)
 docker-compose.yml
+```
+
+Organisation de `frontend/src/` :
+
+```
+main.tsx, router.ts  point d'entrée et table des routes (React Router)
+api/                 httpClient.ts (transport) et api.ts (contactsApi, companiesApi)
+types/               types TypeScript des contacts et entreprises
+layouts/             AppLayout : en-tête, navigation, <Outlet />
+pages/               une page par route (contacts, companies, vat-search)
+components/          composants partagés entre pages
 ```
